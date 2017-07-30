@@ -39,5 +39,8 @@ private:
 
 	void Grab();
 	void Release();
-	FHitResult GetFirstPhysicsBodyReach();
+	FHitResult	GetFirstPhysicsBodyReach();
+	void		DrawReachDebugLine();
+	FVector		GetReachLineEnd();
+	FVector		GetReachLineStart();
 };
