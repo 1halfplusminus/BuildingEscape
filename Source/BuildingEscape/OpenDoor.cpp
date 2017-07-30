@@ -5,7 +5,7 @@
 #include "GameFramework/PlayerController.h"
 #include "Engine/World.h"
 #include "GameFramework/Pawn.h"
-
+#include "Components/PrimitiveComponent.h"
 // Sets default values for this component's properties
 UOpenDoor::UOpenDoor()
 {
@@ -22,7 +22,6 @@ void UOpenDoor::BeginPlay()
 {
 	Super::BeginPlay();
 
-	ActorThatOpens = GetWorld()->GetFirstPlayerController()->GetPawn();
 }
 
 bool UOpenDoor::IsItTimeToCloseTheDoor()
@@ -48,10 +47,9 @@ void UOpenDoor::TickComponent(float DeltaTime, ELevelTick TickType, FActorCompon
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 	// Poll the trigger volume every frame
-	// If the ActorThatOpens is in the volume
-	if (PressurePlate->IsOverlappingActor(ActorThatOpens)) {
+	if (GetTotalMassOfActorsOnPlate() > 50.f) // TODO make into a parameter
+	{
 		OpenDoor();
-
 	}
 	if (IsItTimeToCloseTheDoor())
 	{
@@ -60,3 +58,15 @@ void UOpenDoor::TickComponent(float DeltaTime, ELevelTick TickType, FActorCompon
 	}
 }
 
+float UOpenDoor::GetTotalMassOfActorsOnPlate()
+{
+	float TotalMass = 0.0f;
+	TArray<UPrimitiveComponent*> ComponentsOnPlate;
+	//Find all the overlapping component
+	PressurePlate->GetOverlappingComponents(ComponentsOnPlate);
+	for(const auto& Component : ComponentsOnPlate)
+	{
+		TotalMass += Component->GetMass();
+	}
+	return TotalMass;
+}
