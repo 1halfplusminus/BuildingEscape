@@ -27,24 +27,6 @@ void UOpenDoor::BeginPlay()
 	}
 }
 
-bool UOpenDoor::IsItTimeToCloseTheDoor()
-{
-	return GetWorld()->GetTimeSeconds() - LastDoorOpenTime >= DoorCloseDelay && LastDoorOpenTime != 0.f;
-}
-
-void UOpenDoor::OpenDoor()
-{
-	GetOwner()->SetActorRotation(FRotator(0.f, OpenAngle, 0.f));
-	LastDoorOpenTime = GetWorld()->GetTimeSeconds();
-}
-
-void UOpenDoor::CloseDoor()
-{
-	// Set the door rotation
-	GetOwner()->SetActorRotation(FRotator(0.f, -90.f, 0.f));
-	LastDoorOpenTime = 0.f;
-}
-
 // Called every frame
 void UOpenDoor::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
@@ -52,12 +34,11 @@ void UOpenDoor::TickComponent(float DeltaTime, ELevelTick TickType, FActorCompon
 	// Poll the trigger volume every frame
 	if (GetTotalMassOfActorsOnPlate() >= MassToOpen)
 	{
-		OpenDoor();
+		OnOpen.Broadcast();
 	}
-	if (IsItTimeToCloseTheDoor())
+	else 
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Door closed"));
-		CloseDoor();
+		OnClose.Broadcast();
 	}
 }
 
