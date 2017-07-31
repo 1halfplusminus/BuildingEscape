@@ -13,8 +13,6 @@ UGrabber::UGrabber()
 	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
 	// off to improve performance if you don't need them.
 	PrimaryComponentTick.bCanEverTick = true;
-
-	// ...
 }
 
 
@@ -43,15 +41,24 @@ void UGrabber::FindInputComponent()
 void UGrabber::FindPhysicsHandleComponent()
 {
 	PhysicHandle = GetOwner()->FindComponentByClass<UPhysicsHandleComponent>();
-	if (PhysicHandle == nullptr)
+	if (!IsPhysicHandle())
 	{
 		UE_LOG(LogTemp, Error, TEXT("%s missing physics handle component"), *GetOwner()->GetName())
 	}
 }
 
+bool UGrabber::IsPhysicHandle()
+{
+	return PhysicHandle != nullptr;
+}
+
 void UGrabber::Grab()
 {
 	UE_LOG(LogTemp, Warning, TEXT("grab pressed"))
+	if (!IsPhysicHandle())
+	{
+		return;
+	}
 	auto HitResult = GetFirstPhysicsBodyReach();
 	auto ComponentToGrap = HitResult.GetComponent();
 	// LINE TRACE and reach any actors with physics body collision channel set
@@ -70,12 +77,19 @@ void UGrabber::Grab()
 void UGrabber::Release()
 {
 	UE_LOG(LogTemp, Warning, TEXT("grab release"))
+	if (!IsPhysicHandle())
+	{
+		return;
+	}
 	PhysicHandle->ReleaseComponent();
 }
 // Called every frame
 void UGrabber::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+	if (!IsPhysicHandle()) {
+		return ;  
+	}
 	// If the physics handle is attached
 	if (PhysicHandle->GrabbedComponent)
 	{
@@ -87,7 +101,6 @@ void UGrabber::TickComponent(float DeltaTime, ELevelTick TickType, FActorCompone
 
 FHitResult UGrabber::GetFirstPhysicsBodyReach()
 {
-	DrawReachDebugLine();
 	// Line-trace (AKA Ray-cast) out to reach distance
 	FHitResult HitResult;
 	GetWorld()->LineTraceSingleByObjectType(HitResult,

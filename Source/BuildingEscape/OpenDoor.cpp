@@ -21,7 +21,10 @@ UOpenDoor::UOpenDoor()
 void UOpenDoor::BeginPlay()
 {
 	Super::BeginPlay();
-
+	if (!IsThereAPressurePlate())
+	{
+		UE_LOG(LogTemp, Error, TEXT("%s missing pressure plate"), *GetOwner()->GetName())
+	}
 }
 
 bool UOpenDoor::IsItTimeToCloseTheDoor()
@@ -47,7 +50,7 @@ void UOpenDoor::TickComponent(float DeltaTime, ELevelTick TickType, FActorCompon
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 	// Poll the trigger volume every frame
-	if (GetTotalMassOfActorsOnPlate() > 50.f) // TODO make into a parameter
+	if (GetTotalMassOfActorsOnPlate() >= MassToOpen)
 	{
 		OpenDoor();
 	}
@@ -62,11 +65,21 @@ float UOpenDoor::GetTotalMassOfActorsOnPlate()
 {
 	float TotalMass = 0.0f;
 	TArray<UPrimitiveComponent*> ComponentsOnPlate;
-	//Find all the overlapping component
-	PressurePlate->GetOverlappingComponents(ComponentsOnPlate);
-	for(const auto& Component : ComponentsOnPlate)
+
+	if (IsThereAPressurePlate())
 	{
-		TotalMass += Component->GetMass();
+		//Find all the overlapping component
+		PressurePlate->GetOverlappingComponents(ComponentsOnPlate);
+		for (const auto& Component : ComponentsOnPlate)
+		{
+			TotalMass += Component->GetMass();
+		}
 	}
+	
 	return TotalMass;
+}
+
+bool UOpenDoor::IsThereAPressurePlate()
+{
+	return PressurePlate != nullptr;
 }
