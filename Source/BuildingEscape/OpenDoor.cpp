@@ -6,14 +6,15 @@
 #include "Engine/World.h"
 #include "GameFramework/Pawn.h"
 #include "Components/PrimitiveComponent.h"
+#include "Kismet/KismetSystemLibrary.h"
+#include "ExtraTerrestreInterface.h"
+
 // Sets default values for this component's properties
 UOpenDoor::UOpenDoor()
 {
 	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
 	// off to improve performance if you don't need them.
-	PrimaryComponentTick.bCanEverTick = true;
-
-	// ...
+	PrimaryComponentTick.bCanEverTick = false;
 }
 
 
@@ -21,18 +22,30 @@ UOpenDoor::UOpenDoor()
 void UOpenDoor::BeginPlay()
 {
 	Super::BeginPlay();
-	if (!IsThereAPressurePlate())
-	{
-		UE_LOG(LogTemp, Error, TEXT("%s missing pressure plate"), *GetOwner()->GetName())
-	}
+	check(PressurePlate != nullptr && "You need a pressure plate to open the door");
+
+	MassToOpen = 5.0f;
+	CurrentMass = 0.0f;
+
+	//Init the pressure plate
+	PressurePlate->OnActorBeginOverlap.AddUniqueDynamic(this, &UOpenDoor::OnBeginOverlap);
+	PressurePlate->OnActorEndOverlap.AddUniqueDynamic(this, &UOpenDoor::OnEndOverlap);
 }
 
-// Called every frame
-void UOpenDoor::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
+void UOpenDoor::OnBeginOverlap(AActor* OverlappedActor, AActor* OtherActor)
 {
-	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-	// Poll the trigger volume every frame
-	if (GetTotalMassOfActorsOnPlate() >= MassToOpen)
+	// Is the actor a extra terrestre object
+	IExtraTerrestreInterface* ExtraTerrestreActor = Cast<IExtraTerrestreInterface>(OtherActor);
+	if (ExtraTerrestreActor) {
+		ExtraTerrestreActor->StartToGlow();
+		UPrimitiveComponent* MeshOfActor = OtherActor->FindComponentByClass<UPrimitiveComponent>();
+		if (MeshOfActor)
+		{
+			CurrentMass += MeshOfActor->GetMass();
+		}
+	}
+	// Check if we can open the door
+	if (CurrentMass >= MassToOpen)
 	{
 		OnOpen.Broadcast();
 	}
@@ -42,25 +55,22 @@ void UOpenDoor::TickComponent(float DeltaTime, ELevelTick TickType, FActorCompon
 	}
 }
 
-float UOpenDoor::GetTotalMassOfActorsOnPlate()
+void UOpenDoor::OnEndOverlap(AActor* OverlappedActor, AActor* OtherActor)
 {
-	float TotalMass = 0.0f;
-	TArray<UPrimitiveComponent*> ComponentsOnPlate;
-
-	if (IsThereAPressurePlate())
-	{
-		//Find all the overlapping component
-		PressurePlate->GetOverlappingComponents(ComponentsOnPlate);
-		for (const auto& Component : ComponentsOnPlate)
+	// Is the actor a extra terrestre object
+	IExtraTerrestreInterface* ExtraTerrestreActor = Cast<IExtraTerrestreInterface>(OtherActor);
+	if (ExtraTerrestreActor) {
+		ExtraTerrestreActor->StopToGlow();
+		UPrimitiveComponent* MeshOfActor = OverlappedActor->FindComponentByClass<UPrimitiveComponent>();
+		if (MeshOfActor)
 		{
-			TotalMass += Component->GetMass();
+			CurrentMass -= MeshOfActor->GetMass();
 		}
 	}
-	
-	return TotalMass;
-}
 
-bool UOpenDoor::IsThereAPressurePlate()
+}
+// Called every frame
+void UOpenDoor::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
-	return PressurePlate != nullptr;
+	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 }

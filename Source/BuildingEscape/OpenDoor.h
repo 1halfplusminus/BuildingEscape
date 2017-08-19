@@ -33,11 +33,14 @@ public:
 
 private:
 	UPROPERTY(EditAnywhere)
-	float MassToOpen = 50.0f;
+	float MassToOpen;
 
+	float CurrentMass;
 	UPROPERTY(EditAnywhere)
-	ATriggerVolume* PressurePlate = nullptr;
+	ATriggerVolume* PressurePlate;
 
-	float GetTotalMassOfActorsOnPlate(); // get total mass in kg
-	bool IsThereAPressurePlate();
+	UFUNCTION()
+	void OnBeginOverlap(AActor* OverlappedActor, AActor* OtherActor);
+	UFUNCTION()
+	void OnEndOverlap(AActor* OverlappedActor, AActor* OtherActor);
 };
